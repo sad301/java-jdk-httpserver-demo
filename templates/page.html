@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% import "macros.html" as macros %}
+
+{% block content %}
+<div class="ui inverted vertical borderless sidebar menu">
+    <a href="/home" class="item"><i class="home icon"></i>Home</a>
+    <a href="/pegawai" class="item"><i class="users icon"></i>Pegawai</a>
+    <a href="/absensi" class="item"><i class="calendar alternate icon"></i>Absensi</a>
+</div>
+<div class="pusher">
+    {{ macros.menubar() }}
+    <div class="ui container" style="padding-top: 5em">
+        {% block internal_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

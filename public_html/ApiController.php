@@ -11,15 +11,15 @@ class UiController {
     }
 
     public function index($req, $res) {
-        return $this->container->get("view")->render($res, "index.html");
+        return $this->container->get("view")->render($res, "index.twig");
     }
 
     public function home($req, $res) {
-        return $this->container->get("view")->render($res, "home.html");
+        return $this->container->get("view")->render($res, "home.twig");
     }
 
     public function pegawai($req, $res) {
-        return $this->container->get("view")->render($res, "pegawai.html");
+        return $this->container->get("view")->render($res, "pegawai.twig");
     }
 }
 
