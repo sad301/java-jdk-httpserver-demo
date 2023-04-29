@@ -22,17 +22,18 @@ create table user_token (
 );
 
 create table jenis_nomor (
-    id,
-    deskripsi,
+    id varchar(8) not null,
+    deskripsi text,
     primary key (id)
 );
 
 create table pegawai (
-    nomor,
-    id_jenis_nomor,
-    nama,
-    tempat_lahir,
-    tanggal_lahir,
-    jenis_kelamin,
-    primary key (nomor)
+    nomor varchar(16) not null,
+    id_jenis_nomor varchar(8) not null,
+    nama varchar(128) not null,
+    tempat_lahir varchar(64) not null,
+    tanggal_lahir date not null,
+    jenis_kelamin varchar(1) check(jenis_kelamin in ('L', 'P')) not null,
+    primary key (nomor),
+    foreign key (id_jenis_nomor) references jenis_nomor (id)
 );
