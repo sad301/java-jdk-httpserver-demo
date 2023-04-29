@@ -15,7 +15,10 @@ class JenisNomorController {
             return $res->withStatus(400);
         }
         $jenisNomor = json_decode(file_get_contents("php://input"), true);
-        if (json_last_error())
+        if (json_last_error() != JSON_ERROR_NONE) {
+            $res->getBody()->write(json_encode(["message" => json_last_error_msg()]));
+            return $res->withStatus(500);
+        }
         $res->getBody()->write(json_encode(["message" => "done!"]));
         return $res->withHeader("Content-Type", "application/json");
     }
