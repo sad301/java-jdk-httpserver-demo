@@ -19,6 +19,15 @@ class JenisNomorController {
             $res->getBody()->write(json_encode(["message" => json_last_error_msg()]));
             return $res->withStatus(500);
         }
+        if (!$this->container->get("util")->array_keys_exists(["id", "deskripsi"], $jenisNomor)) {
+            $res->getBody()->write(json_encode(["message" => "incomplete fields"]));
+            return $res->withHeader("Content-Type", "application/json")->withStatus(400);
+        }
+        $result = $this->container->get("jenis_nomor_dao")->create($jenisNomor);
+        if (!$result) {
+            $res->getBody()->write(json_encode(["message" => $this->container->get("jenis_nomor_dao")->errorMessage]));
+            return $res->withStatus(500);
+        }
         $res->getBody()->write(json_encode(["message" => "done!"]));
         return $res->withHeader("Content-Type", "application/json");
     }
