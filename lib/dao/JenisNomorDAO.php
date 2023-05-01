@@ -17,9 +17,7 @@ class JenisNomorDAO {
         $stmt->execute();
         $this->errorCode = $this->sqlite->lastErrorCode();
         $this->errorMessage = $this->sqlite->lastErrorMsg();
-        if ($this->errorCode != 0) {
-            return false;
-        }
+        if ($this->errorCode != 0) return false;
         return true;
     }
 
@@ -31,6 +29,10 @@ class JenisNomorDAO {
         $stmt = $this->sqlite->prepare("delete from jenis_nomor where id=:id");
         $stmt->bindValue(":id", $jenisNomor["id"]);
         $stmt->execute();
+        $this->errorCode = $this->sqlite->lastErrorCode();
+        $this->errorMessage = $this->sqlite->lastErrorMsg();
+        if ($this->errorCode != 0) return false;
+        return true;
     }
 }
 

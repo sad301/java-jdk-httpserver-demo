@@ -33,12 +33,19 @@ class JenisNomorController {
     }
 
     public function retrieve($req, $res) {
-        $res->getBody()->write($this->container->get("jenis_nomor_dao")->retrieve());
+        $dao = $this->container->get("dao")["jenis_nomor"];
+        $res->getBody()->write($dao->retrieve());
         return $res->withHeader("Content-Type", "application/json");
     }
 
     public function delete($req, $res, $args) {
-
+        $dao = $this->container->get("dao")["jenis_nomor"];
+        $result = $dao->delete(["id" => $args["id"]]);
+        if (!$result) {
+            $res->getBody()->write(json_encode(["message" => $dao->errorMessage]));
+            return $res->withHeader("Content-Type", "application/json")->withStatus(500);
+        }
+        return $res->withStatus(204);
     }
 }
 

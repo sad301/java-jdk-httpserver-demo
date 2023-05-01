@@ -14,8 +14,16 @@ require __DIR__ . "/../lib/util.php";
 
 $container = new Container();
 $container->set("database", function () {
-    return new SQLite3(__DIR__ . "/../database/absensi.db");
+    $db = new SQLite3(__DIR__ . "/../database/absensi.db");
+    $db->exec("pragma foreign_keys = on");
+    return $db;
 });
+$container->set("dao", function ($c) {
+    return [
+        "jenis_nomor" => new JenisNomorDAO($c->get("database"))
+    ];
+});
+// remove this
 $container->set("jenis_nomor_dao", function ($c) {
     return new JenisNomorDAO($c->get("database"));
 });
@@ -36,6 +44,7 @@ $app->get("/api", \RootController::class);
 $app->get("/api/jenis_nomor", \JenisNomorController::class . ":retrieve");
 $app->get("/api/pegawai", \PegawaiController::class . ":retrieve");
 $app->post("/api/jenis_nomor", \JenisNomorController::class . ":create");
+$app->delete("/api/jenis_nomor/{id}", \JenisNomorController::class . ":delete");
 $app->run();
 
 ?>
