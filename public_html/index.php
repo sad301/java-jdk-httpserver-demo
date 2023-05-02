@@ -8,6 +8,7 @@ require __DIR__ . "/../lib/vendor/autoload.php";
 require __DIR__ . "/../lib/controller/JenisNomorController.php";
 require __DIR__ . "/../lib/controller/PegawaiController.php";
 require __DIR__ . "/../lib/controller/RootController.php";
+require __DIR__ . "/../lib/dao/ConfigurationDao.php";
 require __DIR__ . "/../lib/dao/JenisNomorDAO.php";
 require __DIR__ . "/../lib/UiController.php";
 require __DIR__ . "/../lib/util.php";
@@ -20,6 +21,7 @@ $container->set("database", function () {
 });
 $container->set("dao", function ($c) {
     return [
+        "configuration" => new ConfigurationDao($c->get("database")),
         "jenis_nomor" => new JenisNomorDAO($c->get("database"))
     ];
 });
@@ -43,6 +45,12 @@ $app->get("/pegawai", \UiController::class . ":pegawai");
 $app->get("/api", \RootController::class);
 $app->get("/api/jenis_nomor", \JenisNomorController::class . ":retrieve");
 $app->get("/api/pegawai", \PegawaiController::class . ":retrieve");
+
+$app->get("/api/configuration", function ($req, $res) {
+    $res->getBody()->write($this->get("dao")["configuration"]->retrieve());
+    return $res->withHeader("Content-Type", "application/json");
+});
+
 $app->post("/api/jenis_nomor", \JenisNomorController::class . ":create");
 $app->delete("/api/jenis_nomor/{id}", \JenisNomorController::class . ":delete");
 $app->run();
