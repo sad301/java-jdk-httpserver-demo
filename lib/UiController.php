@@ -21,6 +21,10 @@ class UiController {
     public function pegawai($req, $res) {
         return $this->container->get("view")->render($res, "pegawai.html");
     }
+
+    public function display($req, $res) {
+        return $this->container->get("view")->render($res, "display.html");
+    }
 }
 
 ?>
