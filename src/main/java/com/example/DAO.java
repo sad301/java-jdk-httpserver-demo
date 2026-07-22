@@ -1,35 +1,19 @@
 package com.example;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
-public abstract class DAO<T> {
+public interface DAO<T> {
 
-    private final String fileName;
-    private final Class<?> type;
+    boolean create(T t) throws IOException;
 
-    private List<T> data = new ArrayList<>();
-    
-    public DAO(String fileName, Class<?> type, String... fields) {
-        this.fileName = fileName;
-        this.type = type;
-    }
+    List<T> retrieve() throws IOException;
 
-    public abstract boolean create(T t) throws IOException;
-    public abstract List<T> retrieve() throws IOException;
-    public abstract boolean update(T t) throws IOException;
-    public abstract boolean delete(T t) throws IOException;
+    boolean update(T t) throws IOException;
 
-    public void read() throws Exception {
-        File f = new File(fileName);
-        if (!f.exists()) return;
-        FileReader fr = new FileReader(f);
-        BufferedReader br = new BufferedReader(fr);
-        List<String> lines = br.readAllLines();
-        String[] header = lines.get(0).split(";");
-    }
+    boolean delete(T t) throws IOException;
+
+    void read() throws IOException;
+
+    void write() throws IOException;
 }

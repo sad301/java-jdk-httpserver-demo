@@ -4,6 +4,10 @@ import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Utilities {
 
@@ -26,5 +30,17 @@ public class Utilities {
         OutputStream os = exchange.getResponseBody();
         os.write(content);
         os.close();
+    }
+
+    public Map<String, String> getRequestBody() throws IOException {
+        Map<String, String> temp = new HashMap<>();
+        String body = new String(exchange.getRequestBody().readAllBytes());
+        for (String field : body.split("&")) {
+            String[] pair = field.split("=");
+            String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+            String value = URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+            temp.put(key, value);
+        }
+        return temp;
     }
 }
