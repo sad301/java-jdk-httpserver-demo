@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class DAO<T> {
@@ -11,7 +12,7 @@ public abstract class DAO<T> {
     private final String fileName;
     private final Class<?> type;
 
-    private List<T> data;
+    private List<T> data = new ArrayList<>();
     
     public DAO(String fileName, Class<?> type, String... fields) {
         this.fileName = fileName;
@@ -28,5 +29,7 @@ public abstract class DAO<T> {
         if (!f.exists()) return;
         FileReader fr = new FileReader(f);
         BufferedReader br = new BufferedReader(fr);
+        List<String> lines = br.readAllLines();
+        String[] header = lines.get(0).split(";");
     }
 }
