@@ -13,34 +13,37 @@ import java.util.Map;
  */
 public class Server {
 
-    private final InetSocketAddress addr;
-    private final String dir;
+  private final InetSocketAddress addr;
+  private final String dir;
 
-    private HttpServer server;
-    private Map<String, HttpContext> contextMap;
+  private HttpServer server;
+  private Map<String, HttpContext> contextMap;
 
-    public Server(InetSocketAddress addr, String dir) {
-        this.addr = addr;
-        this.dir = dir;
-    }
+  public Server(InetSocketAddress addr, String dir) {
+    this.addr = addr;
+    this.dir = dir;
+    contextMap = new HashMap<>();
+  }
 
-    public void configure() throws IOException {
-        server = HttpServer.create(addr, 0);
-        contextMap = new HashMap<>();
-        contextMap.put("ui", server.createContext("/", new StaticFileHandler(dir)));
-    }
+  public void configure() throws IOException {
+    server = HttpServer.create(addr, 0);
+    contextMap.put("ui", server.createContext("/", new StaticFileHandler(dir)));
+    contextMap.put("api", server.createContext("/api", new DataHandler()));
+  }
 
-    public void start() {
-        if (server == null) throw new NullPointerException("Server has not been initialized");
-        server.start();
-    }
+  public void start() {
+    if (server == null)
+      throw new NullPointerException("Server has not been initialized");
+    server.start();
+  }
 
-    public void stop() {
-        if (server == null) throw new NullPointerException("Server has not been initialized");
-        server.stop(3);
-    }
+  public void stop() {
+    if (server == null)
+      throw new NullPointerException("Server has not been initialized");
+    server.stop(3);
+  }
 
-    public Map<String, HttpContext> getContextMap() {
-        return contextMap;
-    }
+  public Map<String, HttpContext> getContextMap() {
+    return contextMap;
+  }
 }
