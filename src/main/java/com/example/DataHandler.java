@@ -3,14 +3,14 @@ package com.example;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class DataHandler implements HttpHandler {
 
@@ -27,17 +27,60 @@ public class DataHandler implements HttpHandler {
     }
 
     private void setRoutes() {
+        AccountDAO accountDAO = (AccountDAO) daoMap.get(AccountDAO.ID);
+        TransactionDAO transactionDAO = (TransactionDAO) daoMap.get(TransactionDAO.ID);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
         GET("/api", exchange -> {
             byte[] content = JSON.object("message", "API Index, nothing to see here").toString().getBytes();
             Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
         });
 
-        AccountDAO accountDAO = (AccountDAO) daoMap.get(AccountDAO.ID);
-
         GET("/api/accounts", exchange -> {
             JSON.Array array = new JSON.Array();
+
+            List<Transaction> transactions = transactionDAO.retrieve();
+
             for (Account account : accountDAO.retrieve()) {
-                array = array.add(JSON.object("id", account.getId(), "name", account.getName()));
+
+                String id = account.getId();
+
+                double depositTotal = transactions.stream().filter(t -> t.getAccount().getId().equals(id)).mapToDouble(Transaction::getDeposit).sum();
+
+                double withdrawTotal = transactions.stream().filter(t -> t.getAccount().getId().equals(id)).mapToDouble(Transaction::getWithdraw).sum();
+
+                array.add(JSON.object(
+                        "id", account.getId(),
+                        "name", account.getName(),
+                        "transaction", JSON.object(
+                                "deposit", depositTotal,
+                                "withdraw", withdrawTotal
+                        ),
+                        "balance", account.getBalance()
+                ));
+            }
+            byte[] content = array.toString().getBytes();
+            Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
+        });
+
+        GET("/api/transactions", exchange -> {
+            JSON.Array array = new JSON.Array();
+            List<Transaction> transactions = transactionDAO.retrieve();
+            if (transactions.size() > 0) {
+                for (Transaction transaction : transactions) {
+                    array.add(JSON.object(
+                            "id", transaction.getId(),
+                            "account", JSON.object(
+                                    "id", transaction.getAccount().getId(),
+                                    "name", transaction.getAccount().getName(),
+                                    "balance", transaction.getAccount().getBalance()
+                            ),
+                            "dateTime", transaction.getDateTime().format(fmt),
+                            "deposit", transaction.getDeposit(),
+                            "withdraw", transaction.getWithdraw(),
+                            "balance", transaction.getBalance()
+                    ));
+                }
             }
             byte[] content = array.toString().getBytes();
             Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
@@ -50,12 +93,89 @@ public class DataHandler implements HttpHandler {
                 Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
                 return;
             }
-            String id = body.get("id");
-            String name = body.get("name");
-            Account account = new Account(id, name);
-            accountDAO.create(account);
-            byte[] content = JSON.object("message", "Account created successfully", "success", true).toString().getBytes();
-            Utilities.of(exchange).sendResponse(201, content, "Content-Type", "application/json");
+            if (accountDAO.create(new Account(body.get("id"), body.get("name"), 0))) {
+                byte[] content = JSON.object("message", "Account created successfully", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(201, content, "Content-Type", "application/json");
+            } else {
+                byte[] content = JSON.object("message", "Account creation failed", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+            }
+        });
+
+        POST("/api/transactions/deposit", exchange -> {
+            Map<String, String> body = Utilities.of(exchange).getRequestBody();
+            if (!body.containsKey("id") || !body.containsKey("amount")) {
+                byte[] content = JSON.object("message", "Required value doesn't exists").toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+                return;
+            }
+            Account account = new Account(body.get("id"));
+            double amount = Double.parseDouble(body.get("amount"));
+            if (transactionDAO.deposit(account, amount)) {
+                byte[] content = JSON.object("message", "Amount deposited successfully", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
+            } else {
+                byte[] content = JSON.object("message", "Deposit failed", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+            }
+        });
+
+        POST("/api/transactions/withdraw", exchange -> {
+            Map<String, String> body = Utilities.of(exchange).getRequestBody();
+            if (!body.containsKey("id") || !body.containsKey("amount")) {
+                byte[] content = JSON.object("message", "Required value doesn't exists").toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+                return;
+            }
+            Account account = new Account(body.get("id"));
+            double amount = Double.parseDouble(body.get("amount"));
+            if (transactionDAO.withdraw(account, amount)) {
+                byte[] content = JSON.object("message", "Amount withdrawn successfully", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
+            } else {
+                byte[] content = JSON.object("message", "Withdraw failed", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+            }
+        });
+
+        PUT("/api/accounts", exchange -> {
+            Utilities util = new Utilities(exchange);
+            Map<String, String> query = util.getRequestQuery();
+            if (!query.containsKey("id")) {
+                byte[] content = JSON.object("message", "Required query parameter doesn't exists", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+                return;
+            }
+            Map<String, String> body = util.getRequestBody();
+            if (!body.containsKey("name")) {
+                byte[] content = JSON.object("message", "Required body field doesn't exists", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+                return;
+            }
+            if (accountDAO.update(new Account(query.get("id"), body.get("name")))) {
+                byte[] content = JSON.object("message", "Account updated successfully", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
+            } else {
+                byte[] content = JSON.object("message", "Account update failed", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+            }
+        });
+
+        DELETE("/api/accounts", exchange -> {
+            Map<String, String> query = Utilities.of(exchange).getRequestQuery();
+            if (!query.containsKey("id")) {
+                byte[] content = JSON.object("message", "Required query parameter doesn't exists", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+                return;
+            }
+            Account account = new Account(query.get("id"));
+            if (accountDAO.delete(account)) {
+                byte[] content = JSON.object("message", "Account deleted successfully", "success", true).toString().getBytes();
+                Utilities.of(exchange).sendResponse(200, content, "Content-Type", "application/json");
+            } else {
+                byte[] content = JSON.object("message", "Account delete failed", "success", false).toString().getBytes();
+                Utilities.of(exchange).sendResponse(400, content, "Content-Type", "application/json");
+            }
         });
     }
 
@@ -67,6 +187,14 @@ public class DataHandler implements HttpHandler {
         addHandler(path, "POST", handler);
     }
 
+    private void PUT(String path, Handler handler) {
+        addHandler(path, "PUT", handler);
+    }
+
+    private void DELETE(String path, Handler handler) {
+        addHandler(path, "DELETE", handler);
+    }
+
     private void addHandler(String path, String method, Handler handler) {
         if (handlers.containsKey(path)) {
             handlers.get(path).put(method, handler);
@@ -75,22 +203,6 @@ public class DataHandler implements HttpHandler {
             map.put(method, handler);
             handlers.put(path, map);
         }
-    }
-
-    private JSON.Array buildArrayFromJSON(String csv, String... names) throws IOException {
-        FileReader fReader = new FileReader(csv);
-        BufferedReader bReader = new BufferedReader(fReader);
-        JSON.Array array = new JSON.Array();
-        for (String line : bReader.readAllLines()) {
-            String[] cols = line.split(";");
-            JSON.Object object = new JSON.Object();
-            for (int i = 0; i < names.length; i++) {
-                object.add(names[i], cols[i]);
-            }
-            array.add(object);
-        }
-        bReader.close();
-        return array;
     }
 
     private byte[] createMessage(String message, boolean success) {

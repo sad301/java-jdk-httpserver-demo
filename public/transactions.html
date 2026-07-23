@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JDK HttpServer Demo</title>
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        table, tr, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
+</head>
+<body>
+
+<a href="/">Home</a>
+<h1>Transactions</h1>
+<table id="transactions">
+    <thead style="background-color: lightgray;">
+        <tr>
+            <th rowspan="2">ID</th>
+            <th colspan="3">Account</th>
+            <th rowspan="2">Date/Time</th>
+            <th rowspan="2">Deposit</th>
+            <th rowspan="2">Withdraw</th>
+            <th rowspan="2">Balance</th>
+        </tr>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Balance</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    async function retrieve() {
+        let res = await fetch("/api/transactions");
+        if (res.status !== 200) {
+            alert(`${res.status} ${res.statusText}`);
+            return;
+        }
+        let table = document.getElementsByTagName("table")[0];
+        let tbody = table.getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+        let data = await res.json();
+        if (data.length < 1) {
+            let d = document.createElement("td");
+            d.setAttribute('colspan', '6');
+            d.innerText = 'No transactions found';
+            let r = document.createElement("tr");
+            r.appendChild(d);
+            tbody.appendChild(r);
+            return;
+        }
+        data.forEach(transaction => {
+            let d1 = document.createElement("td");
+            d1.innerText = transaction.id;
+            let d2 = document.createElement("td");
+            d2.innerText = transaction.account.id;
+            let d3 = document.createElement("td");
+            d3.innerText = transaction.account.name;
+            let d4 = document.createElement("td");
+            d4.innerText = transaction.account.balance;
+            let d5 = document.createElement("td");
+            d5.innerText = transaction.dateTime;
+            let d6 = document.createElement("td");
+            d6.innerText = transaction.deposit;
+            let d7 = document.createElement("td");
+            d7.innerText = transaction.withdraw;
+            let d8 = document.createElement("td");
+            d8.innerText = transaction.balance;
+            let row = document.createElement("tr");
+            row.append(d1, d2, d3, d4, d5, d6, d7, d8);
+            table.appendChild(row);
+        });
+    }
+    window.addEventListener("load", retrieve);
+</script>
+
+</body>
+</html>

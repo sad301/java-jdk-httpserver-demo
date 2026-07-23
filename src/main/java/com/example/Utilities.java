@@ -43,4 +43,16 @@ public class Utilities {
         }
         return temp;
     }
+
+    public Map<String, String> getRequestQuery() {
+        Map<String, String> temp = new HashMap<>();
+        String query = exchange.getRequestURI().getQuery();
+        for (String field : query.split("&")) {
+            String[] pair = field.split("=");
+            String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+            String value = URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+            temp.put(key, value);
+        }
+        return temp;
+    }
 }

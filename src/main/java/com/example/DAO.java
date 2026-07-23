@@ -5,13 +5,13 @@ import java.util.List;
 
 public interface DAO<T> {
 
-    boolean create(T t) throws IOException;
+    boolean create(T t);
 
-    List<T> retrieve() throws IOException;
+    List<T> retrieve();
 
-    boolean update(T t) throws IOException;
+    boolean update(T t);
 
-    boolean delete(T t) throws IOException;
+    boolean delete(T t);
 
     void read() throws IOException;
 

@@ -48,12 +48,16 @@ public class Main extends JFrame {
 
         btn = new JToggleButton("Start");
         btn.addActionListener(_ -> {
-            if (btn.isSelected()) {
-                startServer();
-                btn.setText("Stop");
-            } else {
-                stopServer();
-                btn.setText("Start");
+            try {
+                if (btn.isSelected()) {
+                    startServer();
+                    btn.setText("Stop");
+                } else {
+                    stopServer();
+                    btn.setText("Start");
+                }
+            } catch (Exception e) {
+                log("[error] %s".formatted(e.getMessage()));
             }
         });
 
@@ -92,7 +96,7 @@ public class Main extends JFrame {
         setLocationRelativeTo(null);
     }
 
-    private void startServer() {
+    private void startServer() throws IOException {
         String addr = tfAddress.getText();
         String dir = tfDir.getText();
         if (addr.isEmpty() || dir.isEmpty())
@@ -100,39 +104,30 @@ public class Main extends JFrame {
         String[] pair = addr.split(":");
         int port = Integer.parseInt(pair[1]);
         InetSocketAddress sockAddr = new InetSocketAddress(pair[0], port);
-        try {
-            daoMap = new HashMap<>();
-            daoMap.put(AccountDAO.ID, new AccountDAO("data"));
-            for (DAO<?> dao : daoMap.values()) {
-                dao.read();
-            }
-            server = new Server(sockAddr, dir, daoMap);
-            server.configure();
-            for (HttpContext ctx : server.getContextMap().values()) {
-                ctx.getFilters().add(Filter.afterHandler("session logger", getSessionLogger()));
-            }
-            server.start();
-            log("Server started");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            log("error : " + ex.getMessage());
+
+        daoMap = new HashMap<>();
+        daoMap.put(AccountDAO.ID, new AccountDAO("data", daoMap));
+        daoMap.put(TransactionDAO.ID, new TransactionDAO("data", daoMap));
+        for (DAO<?> dao : daoMap.values()) {
+            dao.read();
         }
+        server = new Server(sockAddr, dir, daoMap);
+        server.configure();
+        for (HttpContext ctx : server.getContextMap().values()) {
+            ctx.getFilters().add(Filter.afterHandler("session logger", getSessionLogger()));
+        }
+        server.start();
+        log("Server started");
     }
 
-    private void stopServer() {
-        try {
-            if (server != null) {
-                server.stop();
-                server = null;
-                for (DAO<?> dao : daoMap.values()) {
-                    dao.write();
-                }
-                log("Server stopped");
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            log("error : " + ex.getMessage());
+    private void stopServer() throws IOException {
+        if (server == null) throw new NullPointerException("Server is null");
+        server.stop();
+        server = null;
+        for (DAO<?> dao : daoMap.values()) {
+            dao.write();
         }
+        log("Server stopped");
     }
 
     private Consumer<HttpExchange> getSessionLogger() {
@@ -143,7 +138,7 @@ public class Main extends JFrame {
                 e.getResponseCode()));
     }
 
-    private void log(String message) {
+    public void log(String message) {
         String now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         taLog.append("%s> %s\n".formatted(now, message));
     }

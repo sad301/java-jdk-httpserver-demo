@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JDK HttpServer Demo</title>
+    <style>
+        .field {
+            margin-bottom: 7px;
+        }
+
+        .field label {
+            display: inline-block;
+            width: 90px;
+        }
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        table, tr, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
+</head>
+<body>
+
+<a href="/">Home</a>
+<h1>Accounts</h1>
+<h3>New Account</h3>
+<div>
+    <div class="field">
+        <label>ID :</label>
+        <input type="text" id="id" name="account_id">
+    </div>
+    <div class="field">
+        <label>Name :</label>
+        <input type="text" id="name" name="account_name">
+    </div>
+    <div class="field">
+        <button id="btnSave">Save</button>
+    </div>
+    <div class="field" id="status"></div>
+</div>
+<h3>Transaction</h3>
+<div>
+    <div class="field">
+        <label>Type :</label>
+        <select id="tr_type">
+            <option value="deposit">Deposit</option>
+            <option value="withdraw">Withdraw</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>Account ID :</label>
+        <input type="text" id="tr_id">
+    </div>
+    <div class="field">
+        <label>Amount :</label>
+        <input type="text" id="tr_amount">
+    </div>
+    <div class="field">
+        <button id="btn_tr_save">Save</button>
+    </div>
+    <div class="field" id="tr_status"></div>
+</div>
+<h3>Registered Accounts</h3>
+<table id="accounts-table">
+    <thead style="background-color: lightgray;">
+        <tr>
+            <th rowspan="2">ID</th>
+            <th rowspan="2">Name</th>
+            <th colspan="2">Transaction</th>
+            <th rowspan="2">Balance</th>
+        </tr>
+        <tr>
+            <th>Deposit</th>
+            <th>Withdraw</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+
+    window.onload = function () {
+        retrieve();
+    }
+
+    let btnSave = document.getElementById("btnSave");
+    btnSave.addEventListener("click", () => {
+        let id = document.getElementById("id").value;
+        let name = document.getElementById("name").value;
+        if (id === '' || name === '') return false;
+        fetch("/api/accounts", {
+            method: "POST",
+            body: `id=${id}&name=${name}`,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+        }).then(r => r.json()).then(body => {
+            document.getElementById("status").innerText = body.message;
+        }).finally(() => retrieve());
+    });
+
+    document.getElementById('btn_tr_save').addEventListener('click', () => {
+        let type = document.getElementById("tr_type").value;
+        let id = document.getElementById("tr_id").value;
+        let amount = document.getElementById("tr_amount").value;
+        if (id === '' || amount === '') {
+            return false;
+        }
+        fetch(`/api/transactions/${type}`, {
+            method: "POST",
+            body: `id=${id}&amount=${amount}`,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+        }).then(res => res.json()).then(body => {
+            document.getElementById("tr_status").innerText = body.message;
+        }).finally(() => retrieve());
+    });
+
+    async function retrieve() {
+        let res = await fetch("/api/accounts");
+        if (res.status !== 200) {
+            console.log(res.statusText);
+            return;
+        }
+
+        let table = document.getElementById("accounts-table");
+        let tbody = table.getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+
+        let data = await res.json();
+        data.forEach(account => {
+            let tdId = document.createElement("td");
+            tdId.innerText = account.id;
+
+            let tdName = document.createElement("td");
+            tdName.innerText = account.name;
+
+            let tdDeposit = document.createElement("td");
+
+            let tdWithdraw = document.createElement("td");
+
+            let tdBalance = document.createElement("td");
+            tdBalance.setAttribute("style", "text-align: right");
+            tdBalance.innerText = account.balance;
+
+            let row = document.createElement("tr");
+            row.append(tdId, tdName, tdDeposit, tdWithdraw, tdBalance);
+            tbody.appendChild(row);
+        });
+    }
+
+</script>
+
+</body>
+</html>
